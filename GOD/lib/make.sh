@@ -9,6 +9,11 @@ export CUDA_PATH=/usr/local/cuda/
 export CXXFLAGS="-std=c++11"
 export CFLAGS="-std=c99"
 
+# 추가
+export PATH=/usr/local/cuda-8.0/bin${PATH:+:${PATH}}
+export CPATH=/usr/local/cuda-8.0/include${CPATH:+:${CPATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda-8.0/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
 python setup.py build_ext --inplace
 rm -rf build
 

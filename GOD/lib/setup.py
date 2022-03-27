@@ -9,7 +9,8 @@ from __future__ import print_function
 import os
 from os.path import join as pjoin
 import numpy as np
-from distutils.core import setup
+# from distutils.core import setup # fix error
+from setuptools import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 

@@ -1,7 +1,8 @@
 from math import dist
 
-# https://stackoverflow.com/questions/4978323/how-to-calculate-distance-between-two-rectangles-context-a-game-in-lua
+# 2개의 직사각형 사이의 최단거리 계산
 # rotation은 고려 x
+# https://stackoverflow.com/questions/4978323/how-to-calculate-distance-between-two-rectangles-context-a-game-in-lua
 def rect_distance(RectA, RectB):
     
     A_x0, A_y0, A_x1, A_y1 = RectA
@@ -51,6 +52,7 @@ def diff_height(RectA, RectB):
         return 0.0
 
 # RectA가 RectB를 포함하는지 체크
+# https://stackoverflow.com/questions/21275714/check-rectangle-inside-rectangle-in-python
 def contains(RectA, RectB):
 
     A_x0, A_y0, A_x1, A_y1 = RectA

@@ -92,7 +92,7 @@ def get_bbox(obj):
 
 # 캡션을 추출하는 함수
 # to-do: image에 대한 것도 추가하기 (일단 table에 대해서만 진행함)
-def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_caption=30, threshold_chunk=15, threshold_line=9, resolution=150, check=False):
+def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_caption=30, threshold_chunk=15, threshold_line=9, resolution=200, check=False):
    '''
    pages: get_pages(pdf)의 결과물
    corp_image, corp_table, corp_text: pdfplumber로 추출한 image, table, text 정보

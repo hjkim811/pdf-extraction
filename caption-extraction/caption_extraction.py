@@ -73,7 +73,7 @@ def get_bbox(obj):
 
 # 캡션을 추출하는 함수
 # to-do: image에 대한 것도 추가하기 (일단 table에 대해서만 진행함)
-def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_caption=30, threshold_chunk=15, threshold_line=8, resolution=150):
+def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_caption=30, threshold_chunk=15, threshold_line=8, resolution=150, check=False):
    '''
    pages: get_pages(pdf)의 결과물
    corp_image, corp_table, corp_text: pdfplumber로 추출한 image, table, text 정보
@@ -82,9 +82,11 @@ def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_c
    threshold_chunk: 같은 줄에 있을 때 같은 chunk인지 아닌지 구분하는 threshold (거리)
    threshold_line: 한 문장이 다음 줄로 이어지는 것인지 아닌지 구분하는 threshold (y값 거리)
    output: 페이지별로 캡션의 bounding box가 표시된 이미지 파일이 저장됨
+   check: False이면 모든 페이지에 대한 결과를 이미지 파일로 저장
+          int값(1부터 시작, 저장되는 이미지 파일 이름과 같은 값)이면 해당 페이지에 대한 결과만 화면에 표시 (파일 저장은 x)
    '''
    for p in tqdm(range(len(pages))):
-        if len(corp_table[p]) != 0:
+        if (check == False or p+1 == check) and len(corp_table[p]) != 0:
             table_data = corp_table[p]
             text_data = corp_text[p]
             table_bb_to_draw = []
@@ -139,8 +141,16 @@ def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_c
                 im.draw_rect(table_bb_to_draw[j], fill=(255, 0, 0, 30))
                 im.draw_rects(text_bb_to_draw[j])
                 
-            # 결과를 저장할 디렉터리가 없으면 디렉터리 생성
-            if not os.path.exists(f'result/{corp}'):
-                os.makedirs(f'result/{corp}') 
+            if check == False:
+                # 결과를 저장할 디렉터리가 없으면 디렉터리 생성
+                if not os.path.exists(f'result/{corp}'):
+                    os.makedirs(f'result/{corp}') 
 
-            im.save(f'result/{corp}/{p+1}.png', format="PNG")
+                im.save(f'result/{corp}/{p+1}.png', format="PNG")
+
+            else:
+                # 결과를 저장할 디렉터리가 없으면 디렉터리 생성
+                if not os.path.exists(f'result/check'):
+                    os.makedirs(f'result/check') 
+
+                im.save(f'result/check/{p+1}.png', format="PNG")

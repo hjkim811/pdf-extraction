@@ -10,15 +10,14 @@ from tqdm.notebook import tqdm
 # rotation은 고려 x
 # https://stackoverflow.com/questions/4978323/how-to-calculate-distance-between-two-rectangles-context-a-game-in-lua
 def rect_distance(RectA, RectB):
-    
     A_x0, A_y0, A_x1, A_y1 = RectA
     B_x0, B_y0, B_x1, B_y1 = RectB
     
     # 변수명: A 기준
     left = B_x1 < A_x0 
     right = A_x1 < B_x0
-    bottom = B_y1 < A_y0
     top = A_y1 < B_y0
+    bottom = B_y1 < A_y0
     
     if top and left:
         return dist((A_x0, A_y1), (B_x1, B_y0))
@@ -36,31 +35,51 @@ def rect_distance(RectA, RectB):
         return A_y0 - B_y1
     elif top:
         return B_y0 - A_y1
-    else:             # rectangles intersect
+    else: # rectangles intersect
         return 0.0
+
+# # 2개의 직사각형 상하관계만 판단
+def top_or_bottom(RectA, RectB):
+    _, A_y0, _, A_y1 = RectA
+    _, B_y0, _, B_y1 = RectB
+    
+    # 변수명: A 기준
+    top = A_y1 < B_y0
+    bottom = B_y1 < A_y0
+
+    # A가 위에 있음
+    if top == True and bottom == False:
+        return 1
+    # B가 위에 있음
+    elif top == False and bottom == True:
+        return -1
+    # 2개의 직사각형이 intersect
+    else:
+        return 0
 
 # y값의 차이만 계산 (수직 거리)
 # rect_distance에서 A와 B의 x0과 x1은 같은 경우
 def diff_height(RectA, RectB):
-
     _, A_y0, _, A_y1 = RectA
     _, B_y0, _, B_y1 = RectB
 
     # 변수명: A 기준
-    bottom = B_y1 < A_y0
     top = A_y1 < B_y0
+    bottom = B_y1 < A_y0
 
-    if bottom:
-        return A_y0 - B_y1
-    elif top:
+    # A가 위에 있음
+    if top == True and bottom == False:
         return B_y0 - A_y1
+    # B가 위에 있음
+    elif top == False and bottom == True:
+        return A_y0 - B_y1
+    # 2개의 직사각형이 intersect
     else:
         return 0.0
 
 # RectA가 RectB를 포함하는지 체크
 # https://stackoverflow.com/questions/21275714/check-rectangle-inside-rectangle-in-python
 def contains(RectA, RectB):
-
     A_x0, A_y0, A_x1, A_y1 = RectA
     B_x0, B_y0, B_x1, B_y1 = RectB
 
@@ -73,7 +92,7 @@ def get_bbox(obj):
 
 # 캡션을 추출하는 함수
 # to-do: image에 대한 것도 추가하기 (일단 table에 대해서만 진행함)
-def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_caption=30, threshold_chunk=15, threshold_line=8, resolution=150, check=False):
+def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_caption=30, threshold_chunk=15, threshold_line=9, resolution=150, check=False):
    '''
    pages: get_pages(pdf)의 결과물
    corp_image, corp_table, corp_text: pdfplumber로 추출한 image, table, text 정보
@@ -100,9 +119,10 @@ def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_c
                 while i < len(text_data):
                     # print('loop 1:', i)
 
-                    # 특정 키워드를 포함 + table과의 거리가 threshold_caption 이내 + 텍스트가 표에 포함되지 않음(캡션의 시작점)
+                    # 특정 키워드를 포함 (표 위/아래에 있는 경우 구분) + table과의 거리가 threshold_caption 이내 + 텍스트가 표에 포함되지 않음 (캡션의 시작점)
                     if rect_distance(table['bbox'], get_bbox(text_data[i])) <= threshold_caption \
-                    and any(x in ['※', '*', '■', '☞', '[', '(', '<', '단위', '기준일', '주'] for x in text_data[i]['text']) \
+                    and ((top_or_bottom(table['bbox'], get_bbox(text_data[i])) == -1 and any(x in text_data[i]['text'] for x in ['[', '<', '단위', '당기', '기준일'])) \
+                    or (top_or_bottom(table['bbox'], get_bbox(text_data[i])) == 1 and any(x in text_data[i]['text'] for x in ['※', '*', '■', '☞', '[', '주)', '주1']))) \
                     and contains(table['bbox'], get_bbox(text_data[i])) == False:
                         # print('detected start of caption')
                         caption_for_this_table.append(get_bbox(text_data[i]))
@@ -110,15 +130,17 @@ def caption_detector(pages, corp_image, corp_table, corp_text, corp, threshold_c
 
                         while True:
                             # print('loop 2:', i)
-                            # 앞 토큰과 같은 줄 + 거리가 threshold_chunk 이내
+                            # 앞 토큰과 같은 줄 + 거리가 threshold_chunk 이내 + 텍스트가 표에 포함되지 않음
                             if get_bbox(text_data[i])[1] == get_bbox(text_data[i-1])[1] and get_bbox(text_data[i])[3] == get_bbox(text_data[i-1])[3] \
-                            and rect_distance(get_bbox(text_data[i]), get_bbox(text_data[i-1])) <= threshold_chunk:
+                            and rect_distance(get_bbox(text_data[i]), get_bbox(text_data[i-1])) <= threshold_chunk \
+                            and contains(table['bbox'], get_bbox(text_data[i])) == False:
                                 # print('case 1 - same line, same chunk')
                                 caption_for_this_table.append(get_bbox(text_data[i]))
                                 i += 1
 
-                            # 줄이 바뀌지만 높이 차이가 threshold_line 이내 (이어지는 문장으로 판단)
-                            elif diff_height(get_bbox(text_data[i]), get_bbox(text_data[i-1])) <= threshold_line:
+                            # 줄이 바뀌지만 높이 차이가 threshold_line 이내 + 텍스트가 표에 포함되지 않음 (이어지는 문장으로 판단) 
+                            elif diff_height(get_bbox(text_data[i]), get_bbox(text_data[i-1])) <= threshold_line \
+                            and contains(table['bbox'], get_bbox(text_data[i])) == False:
                                 # print('case 2 - different line, same chunk')
                                 # print(get_bbox(text_data[i])[1], get_bbox(text_data[i-1])[1])
                                 # print(get_bbox(text_data[i])[3], get_bbox(text_data[i-1])[3])
